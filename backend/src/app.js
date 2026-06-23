@@ -1,0 +1,55 @@
+import cors from "cors";
+import express from "express";
+import helmet from "helmet";
+import morgan from "morgan";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { errorHandler, notFound } from "./middleware/errorHandler.js";
+import { authRouter } from "./routes/authRoutes.js";
+import { careerPathRouter } from "./routes/careerPathRoutes.js";
+import { skillGapRouter } from "./routes/skillGapRoutes.js";
+import { userRouter } from "./routes/userRoutes.js";
+
+export const app = express();
+
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim());
+
+app.disable("x-powered-by");
+app.use(helmet());
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Origin is not allowed by CORS"));
+    },
+    credentials: true
+  })
+);
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: false }));
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+
+app.get("/api/health", (_request, response) => {
+  response.json({ success: true, message: "PathFinder API is healthy" });
+});
+
+app.use("/api/auth", authRouter);
+app.use("/api/users", userRouter);
+app.use("/api/skill-gap", skillGapRouter);
+app.use("/api/career-path", careerPathRouter);
+
+// In production Express serves the compiled React app as well as the API.
+if (process.env.NODE_ENV === "production") {
+  const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
+  const frontendDist = path.resolve(currentDirectory, "../../frontend/dist");
+  app.use(express.static(frontendDist));
+  app.get("/{*splat}", (_request, response) => {
+    response.sendFile(path.join(frontendDist, "index.html"));
+  });
+} else {
+  app.use(notFound);
+}
+
+app.use(errorHandler);
