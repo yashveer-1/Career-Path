@@ -12,9 +12,15 @@ import { userRouter } from "./routes/userRoutes.js";
 
 export const app = express();
 
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+const defaultClientOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174"
+].join(",");
+
+const allowedOrigins = (process.env.CLIENT_URL || defaultClientOrigins)
   .split(",")
-  .map((origin) => origin.trim());
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.disable("x-powered-by");
 app.use(helmet());
