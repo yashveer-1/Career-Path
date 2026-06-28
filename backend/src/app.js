@@ -14,20 +14,26 @@ export const app = express();
 
 const defaultClientOrigins = [
   "http://localhost:5173",
-  "http://localhost:5174"
-].join(",");
+  "http://localhost:5174",
+  "https://career-path-frontend-jade.vercel.app"
+];
 
-const allowedOrigins = (process.env.CLIENT_URL || defaultClientOrigins)
+const configuredClientOrigins = (process.env.CLIENT_URL || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const allowedOrigins = new Set([
+  ...defaultClientOrigins,
+  ...configuredClientOrigins
+]);
 
 app.disable("x-powered-by");
 app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
       return callback(new Error("Origin is not allowed by CORS"));
     },
     credentials: true
