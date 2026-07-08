@@ -16,13 +16,23 @@ const defaultClientOrigins = [
   "https://career-path-frontend-jade.vercel.app"
 ];
 
+const normalizeOrigin = (origin) => {
+  if (!origin) return "";
+
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return origin.replace(/\/+$/, "");
+  }
+};
+
 const configuredClientOrigins = (process.env.CLIENT_URL || "")
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeOrigin(origin.trim()))
   .filter(Boolean);
 
 const allowedOrigins = new Set([
-  ...defaultClientOrigins,
+  ...defaultClientOrigins.map(normalizeOrigin),
   ...configuredClientOrigins
 ]);
 
@@ -33,12 +43,14 @@ app.use(
     origin(origin, callback) {
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.has(origin)) {
+      const normalizedOrigin = normalizeOrigin(origin);
+
+      if (allowedOrigins.has(normalizedOrigin)) {
         return callback(null, true);
       }
 
       // Allow all Vercel deployments for this project
-      if (origin.endsWith(".vercel.app")) {
+      if (normalizedOrigin.endsWith(".vercel.app")) {
         return callback(null, true);
       }
 
